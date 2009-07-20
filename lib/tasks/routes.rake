@@ -1,13 +1,12 @@
 namespace :routes do
   desc 'Print out all defined routes in match order, with names.'
-  task :path => :environment do
+  task :path_only => :environment do
     routes = ActionController::Routing::Routes.routes.collect do |route|
-      puts "route: #{route.inspect}"
       name = ActionController::Routing::Routes.named_routes.routes.index(route).to_s
       verb = route.conditions[:method].to_s.upcase
       segs = route.segments.inject("") { |str,s| str << s.to_s }
       segs.chop! if segs.length > 1
-      
+
       controller = route.requirements.empty? ? "" : route.requirements[:controller]
       action = route.requirements.empty? ? "" : route.requirements[:action]
       route.requirements.delete :controller
