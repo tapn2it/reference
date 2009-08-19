@@ -1,0 +1,9 @@
+<script type="text/javascript">
+  // Have AJAX forms ask for JSON in the headers
+  jQuery.ajaxSetup({
+    'beforeSend': function (xhr) {xhr.setRequestHeader("Accept", "text/javascript")}
+  });
+
+  // Have all remote-classed forms submit AJAX
+  $('form.remote').submitWithAjax();
+</script>

@@ -1,0 +1,38 @@
+<script type="text/javascript">
+
+  // IE also doesn't set the accept headers correctly, so you have
+  // to request a file with the right extension (.js, probably).
+  // If you're not using one of the ruby remote form doodads,
+  // you'll want to ensure the form is sent to /widget/69.js
+  // and not the default /widget/69 :
+
+  // make forms do remote requests
+  jQuery.fn.submitWithAjax = function(){
+    this.submit(function () {
+      // Amend the URL for submitting this form to have a .js extension
+      // Otherwise those dorks using Internet Explorer will get a
+      //    Security Warning - File Download
+      // and no remote form processing.
+      $.post($(this).attr('action')+".js", $(this).serialize(), null, "script");
+
+      //
+      // On submit, set the button to have the 'spinning' class --
+      // which I define to
+      //   .spinning { background: #ccc url('/images/u/spinner-sun-28.gif') no-repeat right !important; }
+      // using
+      //   http://assets3.infochimps.org/images/u/spinner-sun-28.gif
+      // (see http://www.ajaxload.info to get your own.)
+      //
+      // Your response will want to use a similar recipe to
+      //   $('<%= selector_for_the_form_what_called_us %>').find('input[type="submit"]').each(function(){ $(this).toggleClass('spinning', false); });
+      // on the buttons within the form.
+      //
+      $(this).find('input[type="submit"]').each(function(){ $(this).toggleClass('spinning', true); });
+
+      // Don't follow the link to load a new page
+      return false;
+    })
+    return this;
+  };
+
+</script>
