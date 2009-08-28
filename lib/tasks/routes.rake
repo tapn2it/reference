@@ -1,62 +1,48 @@
 namespace :routes do
 
   desc 'Print out all defined routes in match order, with names.'
-  task :paths => :environment do
-    pattern = ENV['controller'] ? ENV['controller'].downcase : ''
-    puts "Match on route controllers ~= #{pattern}"
-
-    routes = routes_controller_methods_matched_to_app_controller_methods(pattern)
-    action_width = routes.collect {|index, controller, action, path, method, segment, flag| action}.collect {|n| n ? n.length : 0}.max
-    controller_width = routes.collect {|index, controller, action, path, segment, flag| controller}.collect {|n| n ? n.length : 0}.max
-    path_width = routes.collect {|index, controller, action, path, method, segment, flag| path}.collect {|n| n ? n.length : 0}.max
-    method_width = routes.collect {|index, controller, action, path, method, segment, flag| method}.collect {|n| n ? n.length : 0}.max
-    segment_width = routes.collect {|index, controller, action, path, method, segment, flag| segment}.collect {|n| n ? n.length : 0}.max
-
+  task :by_routes_controller => :environment do
+    task_setup "Attempting to match routes controller methods to app controller methods"
+    methods = find_routes_controller_methods_matched_to_app_controller_methods(@pattern)
+    index_width, controller_width, action_width, path_width, method_width, segment_width, app_controller_action = get_array_elements_max_width(methods)
     last_controller = ''
-    routes.each do |index, controller, action, path, method, segment, in_app|
-      unless last_controller == controller
-        puts "\n\nCONTROLLER: #{controller.ljust(controller_width).strip}\n"
-      end
-
-      puts "  #{(in_app ? green(action) : yellow(action)).ljust(action_width+colorize_width)}  #{method.ljust(method_width)}  #{path.ljust(path_width)}"
-      #      puts "    #{segment.ljust(segment_width)}"
+    methods.each do |index, controller, action, path, method, segment, app_controller_action|
+      @methods_count += 1
+      @missing_methods_count += 1 unless app_controller_action
+      puts "\n\nCONTROLLER: #{controller.ljust(controller_width).strip}\n" unless last_controller == controller
+      puts "  #{(app_controller_action ? green(action) : yellow(action)).ljust(action_width+colorize_width)}  #{method.ljust(method_width)}  #{path.ljust(path_width)}"
       last_controller = controller
     end
-  end
-
-  desc 'Provides a list of controller methods found in routes and matches with app controller methods'
-  task :test3 => :environment do
-    total_count = 0
-    no_route_count = 0
-    controllers = routes_controller_methods_matched_to_app_controller_methods
-    controllers.first(9).each {|a| puts a.inspect}
-    controllers.each do |index, controller, action, path, method, segment, in_routes|
-      if index and index != ':'
-        total_count += 1
-        no_route_count += 1 if in_routes
-        puts in_routes ? yellow(index) : green(index)
-      end
-    end
-
-    puts "\n\nNumber of routes controller methods: #{total_count}"
-    puts green "Controller methods found in routes: #{total_count - no_route_count}"
-    puts yellow "Controllers methods missing from routes: #{no_route_count}"
+    display_counts
   end
 
   desc 'describe me'
-  task :test4 => :environment do
-    total_count = 0
-    no_route_count = 0
-    controllers = app_controller_methods_matched_to_controller_methods_in_routes
-    controllers.each do |controller, in_routes|
-      total_count += 1
-      no_route_count += 1 unless in_routes
-      puts in_routes ? green(controller) : yellow(controller)
+  task :by_app_controller => :environment do
+    task_setup "Attempting to match app controller methods found to routes controller methods"
+    last_controller = ''
+    find_app_controller_methods_matched_to_controller_methods_in_routes(@pattern).each do |controller, routes_controller_action|
+      @methods_count += 1
+      @missing_methods_count += 1 unless routes_controller_action
+      controller_name, action = controller.split(':')
+      puts "\n\nCONTROLLER: #{controller_name}\n" unless last_controller == controller_name
+      puts "  #{routes_controller_action ? green(action) : yellow(action)}"
+      last_controller = controller_name
     end
+    display_counts
+  end
 
-    puts "\n\nNumber of app controller methods: #{total_count}"
-    puts green "Controller methods found in routes: #{total_count - no_route_count}"
-    puts yellow "Controllers methods missing from routes: #{no_route_count}"
+  def get_array_elements_max_width(array)
+    array.first.enum_with_index.map {|element,idx| array.map {|element| element[idx]}.map {|n| n ? n.length : 0}.max}
+  end
+
+  def task_setup(title)
+    @pattern = ENV['pattern'] ? ENV['pattern'].downcase : ''
+    @methods_count = 0
+    @missing_methods_count = 0
+    puts "\n#{title}\n\n"
+    puts "Match controllers on pattern ~= /#{@pattern}/\n\n"
+    puts green "Controller methods match"
+    puts yellow "Controllers methods unmatched"
   end
 
   def list_directories(directory, pattern)
@@ -68,7 +54,6 @@ namespace :routes do
       elsif file =~ pattern
         result << file
       end
-
     end
     result
   end
@@ -85,7 +70,7 @@ namespace :routes do
       route.requirements.delete :controller
       route.requirements.delete :action
 
-      if controller =~ /#{pattern}/
+      if controller =~ /#{@pattern}/
         unless routes.assoc "#{controller}:#{action}"
           routes << ["#{controller}:#{action}", controller, action, path, method, segment]
         end
@@ -94,32 +79,35 @@ namespace :routes do
     routes
   end
 
-  def find_controller_actions
+  def find_controller_actions(pattern='')
     controller_actions = []
     controllers = list_directories "#{RAILS_ROOT}/app/controllers", /_controller.rb$/
     controllers.each {|a| a.gsub!("#{RAILS_ROOT}/app/controllers/",''); a.gsub!('.rb','')}
     controllers.each do |controller_path|
-      controller = controller_path.camelize.gsub(".rb","")
-      #      puts ">>>#{controller_path}"
-      (eval("#{controller}.public_instance_methods") -
-          ApplicationController.public_instance_methods -
-          Object.methods).sort.each {|method| controller_actions << "#{controller.underscore.gsub!("_controller",'')}:#{method}"}
+      if controller_path =~ /#{@pattern}/
+        controller = controller_path.camelize.gsub(".rb","")
+        (eval("#{controller}.public_instance_methods") -
+            ApplicationController.public_instance_methods -
+            Object.methods).sort.each {|method| controller_actions << ["#{controller.underscore.gsub!("_controller",'')}:#{method}"]}
+      end
     end
     controller_actions
   end
 
-  def app_controller_methods_matched_to_controller_methods_in_routes
-    controllers = find_controller_actions
-    routes = find_controllers_in_routes
-    route_info = []
-    controllers.each {|p| route_info << [p, routes.find {|i| i[0] == p }]}
-    route_info
+  def find_app_controller_methods_matched_to_controller_methods_in_routes(pattern='')
+    controllers_in_routes = find_controllers_in_routes(@pattern)
+    find_controller_actions(@pattern).map! {|p| p << controllers_in_routes.find {|i| i[0] == p[0]}}
   end
 
-  def routes_controller_methods_matched_to_app_controller_methods(pattern='')
-    controllers = find_controller_actions
-    routes = find_controllers_in_routes(pattern)
-    routes.collect! {|p| p << controllers.find {|i| i == p[0] }}
+  def find_routes_controller_methods_matched_to_app_controller_methods(pattern='')
+    controller_actions = find_controller_actions(@pattern)
+    find_controllers_in_routes(@pattern).map! {|p| p << controller_actions.find {|i| i[0] == p[0]}}
+  end
+
+  def display_counts
+    puts "\n\nNumber of methods: #{@methods_count}"
+    puts green "Controller methods matched: #{@methods_count - @missing_methods_count}"
+    puts yellow "Controllers methods unmatched: #{@missing_methods_count}"
   end
 
   def colorize(text, color_code)
