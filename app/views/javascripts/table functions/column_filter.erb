@@ -1,0 +1,28 @@
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+<script type="text/javascript">
+$("#ReportControls #InventoryReports select").change(function(){
+
+    $("#Report table tbody tr").hide();
+    var filterArray = new Array();
+    filterArray[0] = $("#ddlStyle :selected").text()
+    filterArray[1] = $("#ddlSize :selected").text()
+    filterArray[2] = $("#ddlColor :selected").text()
+
+    $.each(filterArray, function(i){
+        if (filterArray[i].toString() == "Style" || filterArray[i].toString() == "Size" || filterArray[i].toString() == "Color")
+        {
+            filterArray[i] = "";
+        }
+    });
+    $("#Report table tbody tr").each(function(){
+        if ($(this).find("td:eq(0):contains('" + filterArray[0].toString() + "')").html() != null
+            && $(this).find("td:eq(1):contains('" + filterArray[1].toString() + "')").html() != null
+            && $(this).find("td:eq(2):contains('" + filterArray[2].toString() + "')").html() != null)
+        {
+            $(this).show();
+        }
+    });
+});
+
+</script>

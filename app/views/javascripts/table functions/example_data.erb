@@ -1,0 +1,30 @@
+<h3>Example 1 - HTML Table Filtering</h3>
+<b>Filter:</b> <input type="text" onkeyup="Util.tableFilter('t1-body', this.value)" />
+<table id="t1" border="1" width="400">
+  <thead>
+    <tr><th width="50%">First Name</th><th width="50%">Last Name</th></tr>
+  </thead>
+  <tbody id="t1-body">
+    <tr><td>John</td><td>Smith</td></tr>
+    <tr><td>Jane</td><td>Doe</td></tr>
+    <tr><td>Bob</td><td>Smith</td></tr>
+    <tr><td>Zack</td><td>Zoolander</td></tr>
+    <tr><td>Jason</td><td>O'Riley</td></tr>
+    <tr><td>Caroline</td><td>Blackwood</td></tr>
+    <tr><td>Foo</td><td>Bar</td></tr>
+    <tr><td>David</td><td>White</td></tr>
+  </tbody>
+</table>
+
+<h3>Example 2 - HTML &lt;select&gt; Filtering</h3>
+<b>Filter:</b> <input type="text" onkeyup="Util.selectFilter('s1', this.value)" /><br>
+<select size="8" id="s1" style="width:200px">
+  <option>John Smith</option>
+  <option>Jane Doe</option>
+  <option>Bob Smith</option>
+  <option>Zack Zoolander</option>
+  <option>Jason O'Riley</option>
+  <option>Caroline Blackwood</option>
+  <option>Foo Bar</option>
+  <option>David White</option>
+</select>

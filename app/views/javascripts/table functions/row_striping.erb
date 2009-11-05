@@ -1,0 +1,24 @@
+<script type="text/javascript">
+  (function($) {
+    $.fn.extend({
+      striper: function(options) {
+        var defaults = {
+          even: "#e2e2e2",
+          odd: "#fff"
+        };
+        var options = $.extend(defaults, options);
+        var obj = $(this);
+        obj.find('tr:odd').css('background', options.odd);
+        obj.find('tr:even').css('background', options.even);
+      }
+    });
+  })(jQuery);
+
+  <!-- dd -->
+  $(document).ready(function(){
+    $('table').striper({
+      'odd': 'aqua'
+    });
+  })
+
+</script>
