@@ -1,6 +1,3 @@
-require File.dirname(__FILE__) + '/../db_migration'
-include DbMigration
-
 namespace :mysql do
   namespace :table do
     desc 'load states table'
@@ -76,16 +73,24 @@ namespace :mysql do
       puts sql
       ActiveRecord::Base.connection.execute sql
     end
+  end
 
-
-    namespace :function do
+  namespace :function do
+    desc "Remove User Defined Function"
+    task :drop do
+      database = ENV['database']
+      function = ENV['function']
+      puts "Drop function in #{database}..."
+      ActiveRecord::Base.connection.execute %Q(DROP FUNCTION IF EXISTS #{database}.#{function})
+    end
+    namespace :add do
       desc "at mysql prompt enter sql in load_cap_first_function. Do this each mysql server."
-      task :load_cap_first_function => :setup do
+      task :cap_first do
         # change database_name below to actual database
-        dbs = ['sportsnation_migration', "fanprofiles_production"]
-        dbs.each do |database|
-          puts "Drop procedure #{database}..."
-          ActiveRecord::Base.connection.execute %Q(DROP FUNCTION IF EXISTS sportsnation_migration.CAP_FIRST)
+        databases = [ENV['database']]
+        databases.each do |database|
+          puts "Drop function #{database}..."
+          ActiveRecord::Base.connection.execute %Q(DROP FUNCTION IF EXISTS #{database}.CAP_FIRST)
           sql = %Q(
             CREATE FUNCTION #{database}.CAP_FIRST (input VARCHAR(255))
             RETURNS VARCHAR(255)
@@ -121,8 +126,8 @@ namespace :mysql do
       end
 
       desc "Drop/create stored procedure set auto_increment value "
-      task :create_auto_increment_proc do
-        database = 'sportsnation_#{Rails.env}'
+      task :set_auto_increment do
+        database = ENV['database']
         puts "Drop procedure in #{database}..."
         ActiveRecord::Base.connection.execute %Q(DROP PROCEDURE IF EXISTS sportsnation_migration.SET_AUTO_INCREMENT)
         sql = %Q(
@@ -144,30 +149,31 @@ namespace :mysql do
         ActiveRecord::Base.connection.execute sql
       end
 
-      desc "Remove html tags from table attribute"
-      task :remove_html_proc do
-        database = 'database_#{Rails.env}'
-        puts "Drop procedure in #{database}..."
-        ActiveRecord::Base.connection.execute %Q(DROP PROCEDURE IF EXISTS #{database}.REMOVE_HTML)
+      desc "Add UDF to remove html tags from table attribute"
+      # SELECT strip_tags('<a href="HelloWorld.html"><B>Hi, mate!</B></a>') as strip_tags;
+      # UPDATE notes SET body = strip_tags(body);
+      task :strip_tags do
+        database = ENV['database']
+        puts "Drop function in #{database}..."
+        ActiveRecord::Base.connection.execute %Q(DROP FUNCTION IF EXISTS #{database}.REMOVE_HTML)
+
         sql = %Q(
-                CREATE FUNCTION 'REMOVE_HTML(strText longtext)
+                CREATE FUNCTION #{database}.STRIP_TAGS( x longtext)
                 RETURNS longtext
-
+                DETERMINISTIC
                 BEGIN
-                  DECLARE nPos1, nPos2 int;
-                  SET nPos1 =INSTR(strText, "<");
-                  WHILE nPos1 > 0 DO
-                    SET nPos2 = locate( ">", strText, nPos1 + 1);
-                    IF nPos2 > 0 THEN
-                      SET strText = CONCAT(Left(strText, nPos1 - 1), MID(strText, nPos2 + 1));
-                    END IF;
-                    SET nPos1 = INSTR(strText, "<");
-                  END WHILE;
-                  RETURN strText;
+                  DECLARE sstart INT UNSIGNED;
+                  DECLARE ends INT UNSIGNED;
+                  SET sstart = LOCATE('<', x, 1);
+                  REPEAT
+                    SET ends = LOCATE('>', x, sstart);
+                    SET x = CONCAT(SUBSTRING( x, 1 ,sstart -1) ,SUBSTRING(x, ends +1 )) ;
+                    SET sstart = LOCATE('<', x, 1);
+                  UNTIL sstart < 1 END REPEAT;
+                  RETURN x;
                 END;
-      )
-
-        puts "Create procedure in #{database}..."
+        )
+        puts "Create function in #{database}..."
         ActiveRecord::Base.connection.execute sql
       end
     end
