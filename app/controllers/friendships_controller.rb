@@ -1,4 +1,5 @@
 class FriendshipsController < ApplicationController
+  
   def create
     @friendship = current_user.friendships.build(:friend_id => params[:friend_id])
     if @friendship.save
@@ -16,4 +17,5 @@ class FriendshipsController < ApplicationController
     flash[:notice] = "Removed friendship."
     redirect_to current_user
   end
+  lip 
 end

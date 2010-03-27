@@ -1,4 +1,4 @@
-module
+module DebugHelper
 # I got this from EpiLog after seeing it mentioned on on the HowToDebugViews wiki.
 # It is a helper class which will raise a Smarty like popup dumping all assigns, sessions, parameter and flash.
 # Install it into your helper directory and include DebugHelper in your application controller.
@@ -73,6 +73,5 @@ module
       "<pre>#{h(object.inspect)}</pre>"
     end
   end
-
 
 end
